@@ -57,7 +57,7 @@ class PostgresDB:
             print(f"[Postgres not connected] Postgres connection error: {e}")
             raise
         
-    def get_list_tables(self) -> List[str]:
+    def _get_list_tables_(self) -> List[str]:
         """
         Return a list of table names in the connected database.
         """
@@ -94,7 +94,7 @@ class PostgresDB:
         Execute a statement that does not return rows (INSERT/UPDATE/DELETE/DDL).
         """
         conn = self.connect()
-        table_list = self.get_list_tables()
+        table_list = self._get_list_tables_()
         try:
             with conn.cursor() as cur:
                 cur.execute(query, params)
