@@ -1,0 +1,8 @@
+rag_service/__pycache__/*.pyc
+runner/__pycache__/*.pyc
+postgres_service/__pycache__/*.pyc
+
+.env
+.vscode/launch.json
+
+
