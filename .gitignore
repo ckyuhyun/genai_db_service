@@ -6,3 +6,4 @@ postgres_service/__pycache__/*.pyc
 .vscode/launch.json
 
 
+__pycache__/*.pyc

@@ -1,0 +1,89 @@
+import asyncio
+import logging
+import json
+from unittest import runner
+from fastapi.concurrency import asynccontextmanager
+import redis.asyncio as asyncredis
+from fastapi import FastAPI
+from postgres_rag_sync import DBSync
+from runner.postgres_rag_sync import DBSync
+from config import redis_host, redis_port, redis_password, redis_default_key_name
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+postgres_rag_sync = DBSync()
+
+
+async def _handle_event(incoming_data : dict, 
+                  postgres_rag_sync: DBSync):
+    """
+        Handle the incoming event data and push it to Postgres.
+    """
+    event_dict = json.loads(incoming_data)
+    event_id = event_dict.get('event_id')
+    event_data = event_dict.get('data', {})
+
+    print(f"[*] Processing Event: {event_id} : {event_data}")
+
+    project_id = event_dict.get("project_id")
+    meta_data = event_dict.get("metadata", {})
+
+    postgres_rag_sync.push(document_id=project_id,
+                           event_id=event_id,
+                           content=event_data)
+    
+    await asyncio.sleep(0.01)  # Small sleep to prevent busy waiting
+
+async def redis_listener(app:FastAPI):
+    logger.info("Connect to redis subscription")
+
+    redis_client = asyncredis.Redis(host=redis_host, 
+                                   port=redis_port, 
+                                   password=redis_password, 
+                                   decode_responses=True)
+    
+
+    try:
+        pubsub = redis_client.pubsub()
+        await pubsub.subscribe(redis_default_key_name)
+        
+
+        logger.info(f"Subscribed to Redis channel: {redis_default_key_name}")
+
+        while True:
+            message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+            
+            if message:
+                try:                    
+                    await _handle_event(message['data'], 
+                                        postgres_rag_sync)
+                    
+                    logger.info(f"Received message from Redis: {message['data']}")
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to decode JSON message: {e}")                    
+                except Exception as e:
+                    logger.error(f"Unexpected error while processing message: {e}")
+            
+            await asyncio.sleep(0.01)  # Small sleep to prevent busy waiting
+    except asyncio.CancelledError:
+        logger.info("Redis listener task was cancelled.")
+    finally:
+        await pubsub.unsubscribe(redis_default_key_name)
+        await redis_client.close()
+        logger.info("Unsubscribed from Redis channel and closed connection.")
+    
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Starting up
+    listener_task = asyncio.create_task(redis_listener(app))
+    yield
+
+    # Shutting down
+    listener_task.cancel()
+    await asyncio.gather(listener_task, return_exceptions=True)
+
+
+    

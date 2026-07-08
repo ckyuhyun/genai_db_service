@@ -57,17 +57,7 @@ class PostgresDB:
             print(f"[Postgres not connected] Postgres connection error: {e}")
             raise
         
-    def _get_list_tables_(self) -> List[str]:
-        """
-        Return a list of table names in the connected database.
-        """
-        query = """
-            SELECT tablename 
-            FROM pg_catalog.pg_tables
-            WHERE schemaname NOT IN ('pg_catalog', 'information_schema');
-        """
-        rows = self.fetch_all(query)
-        return [row["tablename"] for row in rows]
+ 
 
     def close(self):
         """
@@ -94,7 +84,7 @@ class PostgresDB:
         Execute a statement that does not return rows (INSERT/UPDATE/DELETE/DDL).
         """
         conn = self.connect()
-        table_list = self._get_list_tables_()
+        
         try:
             with conn.cursor() as cur:
                 cur.execute(query, params)
@@ -199,7 +189,7 @@ class PostgresDB:
         query = f"DELETE FROM {table} WHERE {where_clause} RETURNING *"
         return self.fetch_all(query, list(where.values()))
 
-    def table_exists(self, 
+    def _table_exists_(self, 
                      table: str) -> bool:
         """Check whether `table` exists in the connected database."""
         row = self.fetch_one(
@@ -207,3 +197,15 @@ class PostgresDB:
             [table],
         )
         return bool(row and row["exists"])
+    
+    def _get_list_tables_(self) -> List[str]:
+        """
+        Return a list of table names in the connected database.
+        """
+        query = """
+            SELECT tablename 
+            FROM pg_catalog.pg_tables
+            WHERE schemaname NOT IN ('pg_catalog', 'information_schema');
+        """
+        rows = self.fetch_all(query)
+        return [row["tablename"] for row in rows]
