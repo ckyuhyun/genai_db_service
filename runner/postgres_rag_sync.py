@@ -1,3 +1,4 @@
+import asyncio
 import os
 from typing import List, Union
 from dotenv import load_dotenv
@@ -18,7 +19,7 @@ class DBSync:
         self.onlyPostgresdb = onlyPostgresdb
         
     
-    def push(self, 
+    async def push(self, 
              document_id: str, 
              event_id: str,
              content: str):
@@ -27,6 +28,8 @@ class DBSync:
             self._push_postgres_(document_id, event_id, content)
         else:
             self._push_postgres_with_weaviate_(document_id, content)
+
+        await asyncio.sleep(0.01) 
 
     # def fetch(self, 
     #           messages : Union[str, List[str]]):
@@ -109,8 +112,8 @@ class DBSync:
 
         
 
-    def _sync_postgres_to_weaviate_(self):
-        fetched_data = self.postgresDB \
+    async def _sync_postgres_to_weaviate_(self):
+        fetched_data = await self.postgresDB \
                            .fetch_all(query=
                                   """
                                     SELECT c.id, c.document_id, c.content, d.category 
@@ -132,7 +135,7 @@ class DBSync:
                 content = content,
                 category=category
             ))
-
+        await asyncio.sleep(0.01) 
 
         
         # update data

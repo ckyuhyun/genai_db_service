@@ -7,7 +7,10 @@ from fastapi import FastAPI
 from config import redis_host, redis_port, redis_password, redis_default_key_name
 from runner.redis_module import lifespan
 
+from postgres_rag_sync import DBSync
 
+
+postgres_rag_sync = DBSync()
 
 app = FastAPI(title="RAG Ingestion Subscriber Service", 
               version="1.0.0", 
@@ -28,32 +31,6 @@ def redis_conn():
         raise e
     
     return redis_client
-
-
-
-
-
-
-# def subscriber():
-
-#     while True:
-#         redis_client = redis_conn()
-#         pubsub = redis_client.pubsub()
-#         pubsub.subscribe(redis_default_key_name)
-#         print(f"[*] Subscribed to channel: {redis_default_key_name}")
-
-#         try:
-#             for message in pubsub.listen():
-#                 if message["type"] != "message":
-#                     continue
-
-#                 try:
-#                     _handle_event(message["data"], postgres_rag_sync)
-#                 except Exception as e:
-#                     print(f"[Error] Failed to process event: {e}")
-#         except redis.exceptions.ConnectionError as e:
-#             print(f"[Error] Redis connection lost, reconnecting: {e}")
-#             continue
 
 
 @app.get("/search_similar_messages")

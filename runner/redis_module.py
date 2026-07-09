@@ -6,7 +6,7 @@ from fastapi.concurrency import asynccontextmanager
 import redis.asyncio as asyncredis
 from fastapi import FastAPI
 from postgres_rag_sync import DBSync
-from runner.postgres_rag_sync import DBSync
+
 from config import redis_host, redis_port, redis_password, redis_default_key_name
 
 
@@ -30,22 +30,38 @@ async def _handle_event(incoming_data : dict,
     project_id = event_dict.get("project_id")
     meta_data = event_dict.get("metadata", {})
 
-    postgres_rag_sync.push(document_id=project_id,
+    await postgres_rag_sync.push(document_id=project_id,
                            event_id=event_id,
                            content=event_data)
     
-    await asyncio.sleep(0.01)  # Small sleep to prevent busy waiting
+    
 
-async def redis_listener(app:FastAPI):
-    logger.info("Connect to redis subscription")
+def redis_check_connect(redis_client) -> bool:
+    """
+        Check the connection to Redis by sending a PING command.
+    """
+    try:
+        return redis_client.ping()        
+    except:
+        return False
+        
 
+
+async def redis_connect() :
+    """
+        Connect to Redis and return the client.
+    """
     redis_client = asyncredis.Redis(host=redis_host, 
                                    port=redis_port, 
                                    password=redis_password, 
                                    decode_responses=True)
-    
+    return redis_client
+
+async def redis_listener(app:FastAPI):
+    logger.info("Connect to redis subscription")
 
     try:
+        redis_client = await redis_connect()
         pubsub = redis_client.pubsub()
         await pubsub.subscribe(redis_default_key_name)
         
@@ -53,6 +69,15 @@ async def redis_listener(app:FastAPI):
         logger.info(f"Subscribed to Redis channel: {redis_default_key_name}")
 
         while True:
+
+            if redis_check_connect(redis_client) is False:
+                logger.warning("Redis connection lost. Attempting to reconnect...")
+
+                redis_client = redis_connect()
+                pubsub = redis_client.pubsub()
+                pubsub.subscribe(redis_default_key_name)
+                logger.info(f"Reconnected and subscribed to Redis channel: {redis_default_key_name}")
+            
             message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
             
             if message:
