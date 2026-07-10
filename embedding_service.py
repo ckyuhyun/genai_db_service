@@ -30,7 +30,7 @@ class EmbeddingService:
     def embed_texts(self, 
                     texts: List[str]) -> List[List[float]]:
         response = requests.post(
-            f"{self.base_url}/v1/embeddings",
+            url=f"{self.base_url}/v1/embeddings",
             json={"input": texts, "model": tei_embedding_model},
             timeout=self.timeout,
         )

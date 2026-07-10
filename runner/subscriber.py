@@ -14,7 +14,6 @@ from embedding_service import EmbeddingService
 
 class Message(BaseModel):
     message : str
-    similiarity_threshold : float = 0.7
 
 
 postgres_rag_sync = DBSync()
@@ -42,7 +41,8 @@ def redis_conn():
 
 
 @app.get("/search")
-async def search_similar_messages(message : Message):
+async def search_similar_messages(message : Message, 
+                                  similiarity_threshold: float = 0.7):
     """
         Endpoint to trigger the subscriber for processing messages.
     """
@@ -63,7 +63,7 @@ async def search_similar_messages(message : Message):
                 where similarity_score > %s
                 ORDER BY similarity_score DESC
             """,
-        params=(emb, message.similiarity_threshold))   
+        params=(emb, similiarity_threshold))   
 
     return StreamingResponse(
         content     = iter([json.dumps(result)]),
