@@ -22,17 +22,17 @@ async def _handle_event(incoming_data : dict,
         Handle the incoming event data and push it to Postgres.
     """
     event_dict = json.loads(incoming_data)
-    event_id = event_dict.get('event_id')
+    thread_id = event_dict.get('thread_id')
     event_data = event_dict.get('data', {})
 
-    print(f"[*] Processing Event: {event_id} : {event_data}")
+    print(f"[*] Processing Event: {thread_id} : {event_data}")
 
-    project_id = event_dict.get("project_id")
+
     meta_data = event_dict.get("metadata", {})
 
-    await postgres_rag_sync.push(document_id=project_id,
-                           event_id=event_id,
-                           content=event_data)
+    await postgres_rag_sync.push(thread_id=thread_id,
+                                 event_id=thread_id,
+                                 content=event_data)
     
     
 

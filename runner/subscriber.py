@@ -5,15 +5,15 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from typing import Union, List, Any
 
 from config import redis_host, redis_port, redis_password, redis_default_key_name
 from runner.redis_module import lifespan
 
 from postgres_rag_sync import DBSync
 from embedding_service import EmbeddingService
+from postgres_service.postgres_wrapper import get_similar_doc
 
-class Message(BaseModel):
-    message : str
 
 
 postgres_rag_sync = DBSync()
@@ -41,32 +41,38 @@ def redis_conn():
 
 
 @app.get("/search")
-async def search_similar_messages(message : Message, 
-                                  similiarity_threshold: float = 0.7):
+async def search_similar_messages(body: dict):
     """
         Endpoint to trigger the subscriber for processing messages.
     """
     
-    
-    emb = str(embedding_service.embed_text(message.message))
-    result = postgres_rag_sync.fetch(
-        query=
-            """
-            with score as (
-                select
-                    content,
-                    (1 - (embedding <=> %s:: vector)) as similarity_score
-                    from document_chunks_embedding
-                )
-                select content, similarity_score
-                from score
-                where similarity_score > %s
-                ORDER BY similarity_score DESC
-            """,
-        params=(emb, similiarity_threshold))   
+    message_list = [ m.get('message') for m in body.get('message')]
+    similiarity_threshold = body.get('similiarity_threshold')
+
+    result = []
+    for m in message_list:
+        emb = embedding_service.embed_text(m)
+        similar_result = get_similar_doc(emb, similiarity_threshold)[0]
+        result.append(similar_result.get('content'))
+    # emb = str(embedding_service.embed_text(message.message))
+    # result = postgres_rag_sync.fetch(
+    #     query=
+    #         """
+    #         with score as (
+    #             select
+    #                 content,
+    #                 (1 - (embedding <=> %s:: vector)) as similarity_score
+    #                 from document_chunks_embedding
+    #             )
+    #             select content, similarity_score
+    #             from score
+    #             where similarity_score > %s
+    #             ORDER BY similarity_score DESC
+    #         """,
+    #     params=(emb, similiarity_threshold))   
 
     return StreamingResponse(
-        content     = iter([json.dumps(result)]),
+        content     = json.dumps(result), # iter([json.dumps(result)]),
         media_type  = "application/json", 
         headers     = {"Content-Disposition": "attachment; filename=result.json"})
     

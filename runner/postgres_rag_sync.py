@@ -12,7 +12,7 @@ class DBSync:
         load_dotenv()
 
         postgresdb_host = os.getenv("POSTGRES_HOST")
-        postgresdb_port = int(os.getenv("POSTGRES_POST"))
+        postgresdb_port = int(os.getenv("POSTGRES_PORT"))
         self.postgresDB = PostgresDB(host=postgresdb_host,
                                      dbname=os.getenv("POSTGRES_DB"),
                                 port=postgresdb_port)
@@ -20,14 +20,14 @@ class DBSync:
         
     
     async def push(self, 
-             document_id: str, 
+             thread_id: str, 
              event_id: str,
              content: str):
         
         if self.onlyPostgresdb:
-            self._push_postgres_(document_id, event_id, content)
+            self._push_postgres_(thread_id, event_id, content)
         else:
-            self._push_postgres_with_weaviate_(document_id, content)
+            self._push_postgres_with_weaviate_(thread_id, content)
 
         await asyncio.sleep(0.01) 
 
@@ -57,20 +57,24 @@ class DBSync:
         
 
     def _push_postgres_(self, 
-                      document_id: str, 
+                      thread_id: str, 
                       event_id: str,
                       content: str
                       ):
         _query = """
-                INSERT INTO document_chunks (document_id, event_id, content, sync_status)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (document_id, event_id) 
-                DO UPDATE SET 
-                    content = EXCLUDED.content, 
-                    sync_status = EXCLUDED.sync_status;
+                INSERT INTO document_chunks (thread_id, event_id, content, sync_status)
+                VALUES (%s, %s, %s, %s)          
             """
+        # _query = """
+        #         INSERT INTO document_chunks (thread_id, event_id, content, sync_status)
+        #         VALUES (%s, %s, %s, %s)
+        #         ON CONFLICT (thread_id, event_id) 
+        #         DO UPDATE SET 
+        #             content = EXCLUDED.content, 
+        #             sync_status = EXCLUDED.sync_status;
+        #     """
                 
-        self.postgresDB.execute(query= _query, params=(document_id, event_id, content, 'PENDING'))
+        self.postgresDB.execute(query= _query, params=(thread_id, event_id, content, 'PENDING'))
 
     # def _fetch_progress_(self, 
     #                      message: str):
@@ -80,7 +84,7 @@ class DBSync:
 
     #     fetched_data = self.postgresDB.fetch_all(query=
     #         """
-    #             SELECT id, document_id, content, sync_status
+    #             SELECT id, thread_id, content, sync_status
     #             FROM document_chunks
     #             WHERE sync_status = 'PENDING';
     #         """
@@ -98,14 +102,14 @@ class DBSync:
         return fetched_data
 
     def _push_postgres_with_weaviate_(self, 
-                                    document_id: str, 
+                                    thread_id: str, 
                                     content: str):
         # self.postgresDB.update_many(query=
         #     """
-        #         INSERT INTO document_chunks (document_id, content, sync_status)
+        #         INSERT INTO document_chunks (thread_id, content, sync_status)
         #         VALUES (%s, %s, 'SYNCED');
         #     """,
-        #     data=[(document_id, content)]
+        #     data=[(thread_id, content)]
         # )
         pass
 
@@ -116,9 +120,9 @@ class DBSync:
         fetched_data = await self.postgresDB \
                            .fetch_all(query=
                                   """
-                                    SELECT c.id, c.document_id, c.content, d.category 
+                                    SELECT c.id, c.thread_id, c.content, d.category 
                                                     FROM document_chunks c
-                                                    JOIN enterprise_documents d ON c.document_id = d.id
+                                                    JOIN enterprise_documents d ON c.thread_id = d.id
                                                     WHERE c.sync_status = 'PENDING';
                                   """)
         
@@ -131,7 +135,7 @@ class DBSync:
             chunk_id, doc_id , content, category  = d
             wvc_property.append(WeaviateProperty(
                 postgres_chunk_id=str(chunk_id),
-                document_id=str(doc_id),
+                thread_id=str(doc_id),
                 content = content,
                 category=category
             ))
