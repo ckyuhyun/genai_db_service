@@ -57,8 +57,10 @@ def get_similar_doc(taget_embedding : List[float],
             .where(score_cte.c.similarity_score > similiarity_threshold)
             .order_by(score_cte.c.similarity_score.desc())
         )
-
-        results = session.execute(stmt).fetchall()
+        try:
+            results = session.execute(stmt).fetchall()
+        except Exception as e :
+            raise e
 
         return [{"content": row.content, "score": float(row.similarity_score)} for row in results]
 

@@ -52,8 +52,10 @@ async def search_similar_messages(body: dict):
     result = []
     for m in message_list:
         emb = embedding_service.embed_text(m)
-        similar_result = get_similar_doc(emb, similiarity_threshold)[0]
-        result.append(similar_result.get('content'))
+        if emb is not None:
+            similar_results = get_similar_doc(emb, similiarity_threshold)
+            if similar_results:
+                result.append(similar_results[0].get('content'))
     # emb = str(embedding_service.embed_text(message.message))
     # result = postgres_rag_sync.fetch(
     #     query=

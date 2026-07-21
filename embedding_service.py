@@ -1,5 +1,5 @@
 import requests
-from typing import List
+from typing import List, Union
 
 from config import tei_embedding_url, tei_embedding_model
 
@@ -24,16 +24,25 @@ class EmbeddingService:
         self.timeout = timeout
 
     def embed_text(self, 
-                   text: str) -> List[float]:
-        return self.embed_texts([text])[0]
+                   text: str) -> Union[List[float],None]:
+        embedded_texts = self.embed_texts([text])
+        
+        return embedded_texts if embedded_texts else None
 
     def embed_texts(self, 
-                    texts: List[str]) -> List[List[float]]:
+                    texts: List[str]) -> List[float]:
         response = requests.post(
             url=f"{self.base_url}/v1/embeddings",
             json={"input": texts, "model": tei_embedding_model},
             timeout=self.timeout,
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as http_err:
+            print(f"HTTP error occurred: {http_err}") 
+            print(f"Status Code: {http_err.response.status_code}")
+
+        if response.status_code != 200:
+            raise ''
         data = response.json()["data"]
-        return [item["embedding"] for item in data]
+        return [item["embedding"] for item in data][0]
