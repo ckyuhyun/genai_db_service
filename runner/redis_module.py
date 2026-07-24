@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import json
 from unittest import runner
 from fastapi.concurrency import asynccontextmanager
@@ -9,9 +8,7 @@ from postgres_rag_sync import DBSync
 
 from config import redis_host, redis_port, redis_password, redis_default_key_name
 
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from __init__ import logger
 
 postgres_rag_sync = DBSync()
 
