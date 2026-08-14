@@ -33,12 +33,12 @@ async def _handle_event(incoming_data : dict,
     
     
 
-def redis_check_connect(redis_client) -> bool:
+async def redis_check_connect(redis_client) -> bool:
     """
         Check the connection to Redis by sending a PING command.
     """
     try:
-        return redis_client.ping()        
+        return await redis_client.ping()        
     except:
         return False
         
@@ -67,12 +67,12 @@ async def redis_listener(app:FastAPI):
 
         while True:
 
-            if redis_check_connect(redis_client) is False:
+            if await redis_check_connect(redis_client) is False:
                 logger.warning("Redis connection lost. Attempting to reconnect...")
 
-                redis_client = redis_connect()
+                redis_client = await redis_connect()
                 pubsub = redis_client.pubsub()
-                pubsub.subscribe(redis_default_key_name)
+                await pubsub.subscribe(redis_default_key_name)
                 logger.info(f"Reconnected and subscribed to Redis channel: {redis_default_key_name}")
             
             message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
