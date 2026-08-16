@@ -1,7 +1,6 @@
 
 import os
 import numpy as np
-from dotenv import load_dotenv
 from typing import List, Dict, Any
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, select, Column, Integer, String, func, Uuid
@@ -18,8 +17,6 @@ class  DocumentChunk(Base):
     content = Column(String, nullable=False)
     embedding = Column(Vector(1024), nullable=False)
 
-
-load_dotenv()
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT", 5433)

@@ -3,7 +3,6 @@ from typing import Any, Dict, List, Optional, Sequence
 
 import psycopg2
 import psycopg2.extras
-from dotenv import load_dotenv
 
 
 
@@ -21,8 +20,6 @@ class PostgresDB:
         user: Optional[str] = None,
         password: Optional[str] = None,
     ):
-        load_dotenv()
-
         self.host = host or os.getenv("POSTGRES_HOST", "localhost")
         self.port = port or int(os.getenv("POSTGRES_PORT", 5433))
         self.dbname = dbname or os.getenv("POSTGRES_DB", "agnetic_ai_db")

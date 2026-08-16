@@ -1,7 +1,6 @@
 import asyncio
 import os
 from typing import List, Union
-from dotenv import load_dotenv
 from rag_service.weaviate_property_data import WeaviateProperty
 from postgres_service.postgres import PostgresDB
 
@@ -9,8 +8,6 @@ from postgres_service.postgres import PostgresDB
 class DBSync:
     def __init__(self, 
                  onlyPostgresdb: bool = True):
-        load_dotenv()
-
         postgresdb_host = os.getenv("POSTGRES_HOST")
         postgresdb_port = int(os.getenv("POSTGRES_PORT"))
         self.postgresDB = PostgresDB(host=postgresdb_host,
