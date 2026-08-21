@@ -1,5 +1,6 @@
 import uvicorn
 import os
+from pathlib import Path
 
 from fastapi import FastAPI, status, Request
 from dotenv import load_dotenv
@@ -21,7 +22,7 @@ async def update(request :Request):
 
 
 if __name__ == "__main__":
-    load_dotenv()
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
     host = os.getenv("POSTGRES_HOST")
     port = int(os.getenv("POSTGRES_POST"))
     

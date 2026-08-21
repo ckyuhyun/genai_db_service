@@ -1,5 +1,6 @@
 import os
 import uuid
+from pathlib import Path
 from typing import Optional, List, Dict, Union
 from dotenv import load_dotenv
 import weaviate
@@ -41,7 +42,7 @@ class WeaviateController:
                  collection_name: Optional[str] = None, 
                  embedded_model: Optional[str] = None):
         
-        load_dotenv()
+        load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
         self._collection_name_ = collection_name
