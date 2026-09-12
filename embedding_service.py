@@ -1,7 +1,12 @@
 import requests
 from typing import List, Union
 
-from config import tei_embedding_url, tei_embedding_model
+try:
+    # Resolves when docker_services/ is the working directory (e.g. runner/subscriber.py).
+    from config import tei_embedding_url, tei_embedding_model
+except ImportError:
+    # Resolves when imported package-qualified from the repo root (e.g. tests).
+    from docker_services.config import tei_embedding_url, tei_embedding_model
 
 
 class EmbeddingService:
@@ -39,10 +44,9 @@ class EmbeddingService:
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as http_err:
-            print(f"HTTP error occurred: {http_err}") 
+            print(f"HTTP error occurred: {http_err}")
             print(f"Status Code: {http_err.response.status_code}")
+            raise
 
-        if response.status_code != 200:
-            raise ''
         data = response.json()["data"]
         return [item["embedding"] for item in data][0]
